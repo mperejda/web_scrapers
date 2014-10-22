@@ -10,7 +10,7 @@ require 'pry'
 puts "Scraper Initialized"
 
 # location => id hash
-locations = {"austin" => 1617, "washington, dc" => 1691, "philadelphia" => 1671, "miami" => 1657, "new york, ny" => 1664}
+locations = {}
 
 #split hash into city and id arrays
 cities = locations.keys 
