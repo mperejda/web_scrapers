@@ -1,3 +1,5 @@
+
+
 require 'rubygems'
 require 'json'
 require 'csv'
@@ -8,7 +10,7 @@ require 'pry'
 puts "Scraper Initialized"
 
 # location => id hash
-locations = {"boston" => 1620}
+locations = {"austin" => 1617, "washington, dc" => 1691, "philadelphia" => 1671, "miami" => 1657, "new york, ny" => 1664}
 
 #split hash into city and id arrays
 cities = locations.keys 
@@ -43,10 +45,19 @@ locations.each {
         page_counter["#{city}"].each {
             |page_number| json = Curl::Easy.perform("https://api.angel.co/1/tags/#{id}/users?include_children=true&investors=by_residence&page=#{page_number}").body_str
             
-            investors_array = JSON.parse(json)['users']
+            investors = JSON.parse(json)['users']
+            
+            #filter out investors w/ blank angellist profiles
+            filtered_investors = Array.new
+
+            investors.each {
+                |i| if i["angellist_url"] != nil && i["name"] != nil
+                    filtered_investors << i
+                    end
+            }
 
             #check roles and grab angels
-            investors_array.each {
+            filtered_investors.each {
                 |investor| investor['roles'].each {
                     |role| role["id"]
                     if role["id"] == 9300
@@ -58,27 +69,32 @@ locations.each {
             #eliminate duplicates
             angels["#{city}"]= angels["#{city}"].uniq
 
-            #add names to angel_names array
+            #add names & links to angel_names array
             angels["#{city}"].each {
-                |i| angel_names["#{city}"] << i["name"]
-            }
+                |i| 
 
-            #add URLs to angel_links array
-            angels["#{city}"].each {
-                |i| angel_links["#{city}"] << i["angellist_url"]
+                a = Array.new
+
+                a << i["name"]
+
+                a << i["angellist_url"]
+
+                angel_names["#{city}"] << a
+
+
             }
 
             #eliminate duplicates
             angel_names["#{city}"] = angel_names["#{city}"].uniq
-            angel_links["#{city}"] = angel_links["#{city}"].uniq
         }
 
         puts angel_names["#{city}"].count
 
         puts angel_links["#{city}"].count
 
+
        #format names & links into two columns
-        export_data = [angel_names["#{city}"], angel_links["#{city}"]].transpose
+        export_data = angel_names["#{city}"]
 
         #create, write, and save new .CSv file for each location
         CSV.open("#{city}.csv", 'wb') do |csv|
@@ -86,6 +102,8 @@ locations.each {
                 csv << row
             end
         end
+
+        puts "#{city} finished"
 }
 
 puts "Scraper finished"
